@@ -1,4 +1,3 @@
-
 /*
  * Copyright (C) 2008 The Android Open Source Project
  * Copyright (c) 2013, The Linux Foundation. All rights reserved.
@@ -101,6 +100,8 @@ import android.widget.Toast;
 import com.android.common.Search;
 import com.android.launcher.R;
 import com.android.launcher2.DropTarget.DragObject;
+import com.android.launcher2.preference.Preferences;
+import com.android.launcher2.preference.*;
 
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
@@ -134,7 +135,8 @@ public final class Launcher extends Activity
     private static final int MENU_WALLPAPER_SETTINGS = Menu.FIRST + 1;
     private static final int MENU_MANAGE_APPS = MENU_WALLPAPER_SETTINGS + 1;
     private static final int MENU_SYSTEM_SETTINGS = MENU_MANAGE_APPS + 1;
-    private static final int MENU_HELP = MENU_SYSTEM_SETTINGS + 1;
+    private static final int MENU_PREFERENCES = MENU_SYSTEM_SETTINGS + 1;
+    private static final int MENU_HELP = MENU_PREFERENCES + 1;
 
     private static final int REQUEST_CREATE_SHORTCUT = 1;
     private static final int REQUEST_CREATE_APPWIDGET = 5;
@@ -310,6 +312,9 @@ public final class Launcher extends Activity
 
     private BubbleTextView mWaitingForResume;
 
+    // Preferences
+    private boolean mShowSearchBar;
+
     private HideFromAccessibilityHelper mHideFromAccessibilityHelper
         = new HideFromAccessibilityHelper();
 
@@ -368,6 +373,9 @@ public final class Launcher extends Activity
         mAppWidgetManager = AppWidgetManager.getInstance(this);
         mAppWidgetHost = new LauncherAppWidgetHost(this, APPWIDGET_HOST_ID);
         mAppWidgetHost.startListening();
+
+	// Preferences
+	mShowSearchBar = PreferencesProvider.Interface.Homescreen.getShowSearchBar(this);
 
         // If we are getting an onCreate, we can actually preempt onResume and unset mPaused here,
         // this also ensures that any synchronous binding below doesn't re-trigger another
@@ -737,6 +745,12 @@ public final class Launcher extends Activity
         InstallShortcutReceiver.flushInstallQueue(this);
 
         mPaused = false;
+
+	// Restart launcher when preferences are changed
+	if (preferencesChanged()) {
+		android.os.Process.killProcess(android.os.Process.myPid());
+	}
+
         sPausedFromUserAction = false;
         if (mRestoring || mOnResumeNeedsLoad) {
             mWorkspaceLoading = true;
@@ -961,6 +975,11 @@ public final class Launcher extends Activity
 
         // Get the search/delete bar
         mSearchDropTargetBar = (SearchDropTargetBar) mDragLayer.findViewById(R.id.qsb_bar);
+
+	// Hide the search divider if we are hiding search bar
+	if (!mShowSearchBar && getCurrentOrientation() == Configuration.ORIENTATION_LANDSCAPE) {
+	   ((View) findViewById(R.id.qsb_divider)).setVisibility(View.GONE);
+	}
 
         // Setup AppsCustomize
         mAppsCustomizeTabHost = (AppsCustomizeTabHost) findViewById(R.id.apps_customize_pane);
@@ -1633,6 +1652,9 @@ public final class Launcher extends Activity
         Intent settings = new Intent(android.provider.Settings.ACTION_SETTINGS);
         settings.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK
                 | Intent.FLAG_ACTIVITY_RESET_TASK_IF_NEEDED);
+	Intent preferences = new Intent().setClass(this, Preferences.class);
+	preferences.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK
+		| Intent.FLAG_ACTIVITY_EXCLUDE_FROM_RECENTS);
         String helpUrl = getString(R.string.help_url);
         Intent help = new Intent(Intent.ACTION_VIEW, Uri.parse(helpUrl));
         help.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK
@@ -1645,10 +1667,14 @@ public final class Launcher extends Activity
             .setIcon(android.R.drawable.ic_menu_manage)
             .setIntent(manageApps)
             .setAlphabeticShortcut('M');
-        menu.add(0, MENU_SYSTEM_SETTINGS, 0, R.string.menu_settings)
-            .setIcon(android.R.drawable.ic_menu_preferences)
-            .setIntent(settings)
-            .setAlphabeticShortcut('P');
+	menu.add(0, MENU_SYSTEM_SETTINGS, 0, R.string.menu_settings)
+	    .setIcon(android.R.drawable.ic_menu_preferences)
+	    .setIntent(settings)
+	    .setAlphabeticShortcut('P');
+	menu.add(0, MENU_PREFERENCES, 0, R.string.menu_preferences)
+	    .setIcon(android.R.drawable.ic_menu_preferences)
+	    .setIntent(preferences)
+	    .setAlphabeticShortcut('O');
         if (!helpUrl.isEmpty()) {
             menu.add(0, MENU_HELP, 0, R.string.menu_help)
                 .setIcon(android.R.drawable.ic_menu_help)
@@ -2984,10 +3010,14 @@ public final class Launcher extends Activity
         }
     }
 
+	public int getCurrentOrientation() {
+	return getResources().getConfiguration().orientation;
+	}
+
     /** Maps the current orientation to an index for referencing orientation correct global icons */
     private int getCurrentOrientationIndexForGlobalIcons() {
         // default - 0, landscape - 1
-        switch (getResources().getConfiguration().orientation) {
+        switch (getCurrentOrientation()) {
         case Configuration.ORIENTATION_LANDSCAPE:
             return 1;
         default:
@@ -3865,6 +3895,18 @@ public final class Launcher extends Activity
         dismissCling(cling, Cling.FOLDER_CLING_DISMISSED_KEY, DISMISS_CLING_DURATION);
     }
 
+	public boolean preferencesChanged() {
+		SharedPreferences prefs =
+		getSharedPreferences(PreferencesProvider.PREFERENCES_KEY, Context.MODE_PRIVATE);
+		boolean preferencesChanged = prefs.getBoolean(PreferencesProvider.PREFERENCES_CHANGED, false);
+			if (preferencesChanged) {
+				SharedPreferences.Editor editor = prefs.edit();
+				editor.putBoolean(PreferencesProvider.PREFERENCES_CHANGED, false);
+				editor.commit();
+				}			
+		return preferencesChanged;
+}
+
     /**
      * Prints out out state for debugging.
      */
@@ -3913,3 +3955,4 @@ interface LauncherTransitionable {
     void onLauncherTransitionStep(Launcher l, float t);
     void onLauncherTransitionEnd(Launcher l, boolean animated, boolean toWorkspace);
 }
+

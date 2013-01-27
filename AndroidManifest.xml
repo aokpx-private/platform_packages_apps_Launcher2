@@ -75,8 +75,7 @@
             android:stateNotNeeded="true"
             android:theme="@style/Theme"
             android:windowSoftInputMode="adjustPan"
-            android:configChanges="orientation|screenSize"
-            android:screenOrientation="nosensor">
+            android:configChanges="orientation|screenSize">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.HOME" />
@@ -108,6 +107,10 @@
                 <action android:name="com.android.launcher.action.PRELOAD_WORKSPACE" />
             </intent-filter>
         </receiver>
+
+	<!-- The activity to launch the launcher settings -->
+	<activity android:name="com.android.launcher2.preference.Preferences"
+	     android:label="@string/preferences_title" />
 
         <!-- Intent received used to install shortcuts from other applications -->
         <receiver
