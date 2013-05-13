@@ -1273,16 +1273,16 @@ public class Workspace extends SmoothPagedView
             int index = mOverScrollX < 0 ? 0 : getChildCount() - 1;
             CellLayout cl = (CellLayout) getChildAt(index);
             if (getChildCount() > 1) {
-		float scrollProgress = getScrollProgress(screenCenter, cl, index);
-		cl.setOverScrollAmount(Math.abs(scrollProgress), index == 0);
-		float rotation = - WORKSPACE_OVERSCROLL_ROTATION * scrollProgress;
-		cl.setCameraDistance(mDensity * mCameraDistance);
-		cl.setPivotX(cl.getMeasuredWidth() * (index == 0 ? 0.75f : 0.25f));
-		cl.setPivotY(cl.getMeasuredHeight() * 0.5f);
-		cl.setRotationY(rotation);
-		cl.setOverscrollTransformsDirty(true);
-		setFadeForOverScroll(Math.abs(scrollProgress));
-	}
+                float scrollProgress = getScrollProgress(screenCenter, cl, index);
+                cl.setOverScrollAmount(Math.abs(scrollProgress), index == 0);
+                float rotation = - WORKSPACE_OVERSCROLL_ROTATION * scrollProgress;
+                cl.setCameraDistance(mDensity * mCameraDistance);
+                cl.setPivotX(cl.getMeasuredWidth() * (index == 0 ? 0.75f : 0.25f));
+                cl.setPivotY(cl.getMeasuredHeight() * 0.5f);
+                cl.setRotationY(rotation);
+                cl.setOverscrollTransformsDirty(true);
+                setFadeForOverScroll(Math.abs(scrollProgress));
+        }
             if (!mOverscrollTransformsSet) {
                 mOverscrollTransformsSet = true;
                 cl.setCameraDistance(mDensity * mCameraDistance);
